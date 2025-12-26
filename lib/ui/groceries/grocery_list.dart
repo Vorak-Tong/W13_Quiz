@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/mock_grocery_repository.dart';
-import '../../../models/grocery.dart';
+import '../../models/grocery.dart';
 import 'grocery_form.dart';
 
 class GroceryList extends StatefulWidget {
@@ -11,6 +11,8 @@ class GroceryList extends StatefulWidget {
 }
 
 class _GroceryListState extends State<GroceryList> {
+  int _selectedIndex = 0;
+  String _searchQuery = '';
 
   void onCreate() async {
     // Navigate to the form screen using the Navigator push
@@ -25,17 +27,70 @@ class _GroceryListState extends State<GroceryList> {
     }
   }
 
+  Widget _buildSearchTab(){
+    Widget searchContent;
+    String search = _searchQuery.trim();
+
+    if(search.isEmpty) {
+      searchContent = const Center(child: Text('Type to search'));
+    } 
+    else{
+      final filteredItems = dummyGroceryItems
+          .where((item) =>
+              item.name.toLowerCase().startsWith(search.toLowerCase()))
+          .toList();
+
+      if(filteredItems.isEmpty) {
+        searchContent = const Center(child: Text('No items found.'));
+      } 
+      else{
+        searchContent = ListView.builder(
+          itemCount: filteredItems.length,
+          itemBuilder: (context, index) =>
+              GroceryTile(grocery: filteredItems[index]),
+        );
+      }
+    }
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            decoration: const InputDecoration(
+              labelText: 'Search',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+        ),
+        Expanded(child: searchContent),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    Widget content = const Center(child: Text('No items added yet.'));
+    Widget? content;
 
-    if (dummyGroceryItems.isNotEmpty) {
-      //  Display groceries with an Item builder and  LIst Tile
-      content = ListView.builder(
-        itemCount: dummyGroceryItems.length,
-        itemBuilder: (context, index) =>
-            GroceryTile(grocery: dummyGroceryItems[index]),
-      );
+    if(_selectedIndex == 0){
+      if(dummyGroceryItems.isEmpty){
+        content = const Center(child: Text("No items added yet"));
+      }
+      else{
+        content = ListView.builder(
+          itemCount: dummyGroceryItems.length,
+          itemBuilder: (context, index) => GroceryTile(grocery: dummyGroceryItems[index])
+        );
+      }
+    }
+    else{
+      content = _buildSearchTab();
     }
 
     return Scaffold(
@@ -44,6 +99,24 @@ class _GroceryListState extends State<GroceryList> {
         actions: [IconButton(onPressed: onCreate, icon: const Icon(Icons.add))],
       ),
       body: content,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index){
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.local_grocery_store),
+            label: 'Groceries', 
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Search', 
+          ),
+        ],
+      ),
     );
   }
 }
